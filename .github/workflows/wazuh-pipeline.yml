@@ -1,0 +1,74 @@
+name: Wazuh SOC Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-scan:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install test deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest selenium requests
+
+      - name: Trivy scan on upstream images
+        run: |
+          trivy image --exit-code 1 --severity CRITICAL,HIGH             --no-progress wazuh/wazuh-indexer:4.8.0
+          trivy image --exit-code 1 --severity CRITICAL,HIGH             --no-progress wazuh/wazuh-manager:4.8.0
+          trivy image --exit-code 1 --severity CRITICAL,HIGH             --no-progress wazuh/wazuh-dashboard:4.8.0
+
+  tests:
+    runs-on: self-hosted
+    needs: build-and-scan
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start ephemeral stack (compose) for tests
+        run: |
+          docker compose -f docker-compose.test.yml up -d
+          sleep 30
+      - name: Run Selenium + API tests
+        env:
+          WAZUH_DASHBOARD_URL: "https://localhost:8443"
+        run: |
+          pytest -q tests/selenium/test_wazuh_dashboard.py
+          pytest -q tests/api/test_health.py
+      - name: Teardown test stack
+        if: always()
+        run: |
+          docker compose -f docker-compose.test.yml down -v
+
+  deploy:
+    runs-on: self-hosted
+    needs: tests
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure SSH key
+        if: env.ANSIBLE_SSH_PRIVATE_KEY != ''
+        env:
+          SSH_KEY: ${{ secrets.ANSIBLE_SSH_PRIVATE_KEY }}
+        run: |
+          echo "$SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+      - name: Ansible deploy to Swarm
+        env:
+          VAULT_PASSWORD: ${{ secrets.VAULT_PASSWORD }}
+          TRAEFIK_EMAIL: ${{ secrets.TRAEFIK_EMAIL }}
+          WAZUH_PASSWORD: ${{ secrets.WAZUH_PASSWORD }}
+          ANSIBLE_HOST: ${{ secrets.ANSIBLE_HOST }}
+          ANSIBLE_USER: ${{ secrets.ANSIBLE_USER }}
+        run: |
+          cd ansible
+          echo "$VAULT_PASSWORD" > .vault-pass
+          ansible-playbook -i inventories/production playbooks/deploy.yml --vault-password-file .vault-pass -vv

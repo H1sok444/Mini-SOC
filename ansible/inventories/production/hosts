@@ -1,0 +1,3 @@
+[swarm_nodes]
+# Replace with your Swarm manager IP or DNS
+manager ansible_host={{ lookup('env','ANSIBLE_HOST') | default('127.0.0.1') }} ansible_user={{ lookup('env','ANSIBLE_USER') | default('root') }}

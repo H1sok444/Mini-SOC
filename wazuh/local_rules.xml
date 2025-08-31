@@ -1,0 +1,29 @@
+<group name="local,ssh">
+  <!-- Rule 100001: Track failed SSH logins -->
+  <rule id="100001" level="3">
+    <if_group>sshd,authentication_failures</if_group>
+    <field name="srcip">(\d{1,3}\.){3}\d{1,3}</field>
+    <description>SSH failed login attempt</description>
+    <group>ssh,authentication</group>
+    <mitre>
+      <id>T1110</id>
+    </mitre>
+  </rule>
+
+  <!-- Rule 100002: Success after >=3 failures from same IP within 60s and user is new (not in cdb list) -->
+  <rule id="100002" level="10">
+    <if_group>sshd,authentication_success</if_group>
+    <if_matched_sid>100001</if_matched_sid>
+    <same_source_ip />
+    <frequency>3</frequency>
+    <timeframe>60</timeframe>
+    <options>no_full_log</options>
+    <field name="user">\!lookup_users_cdb</field>
+    <description>Possible brute-force then success with new user from same IP</description>
+    <group>ssh,attack,authentication</group>
+    <mitre>
+      <id>T1110</id>
+    </mitre>
+    <cve>CWE-307</cve>
+  </rule>
+</group>

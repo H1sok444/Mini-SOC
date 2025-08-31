@@ -1,0 +1,49 @@
+---
+- name: Deploy Wazuh Stack to Docker Swarm
+  hosts: swarm_nodes
+  become: yes
+  vars_files:
+    - ../group_vars/all/vault.yml
+
+  tasks:
+    - name: Ensure Docker is installed (assumes runner provides it) – skipped
+      meta: noop
+
+    - name: Ensure Docker Swarm is initialized
+      shell: |
+        docker swarm init --advertise-addr {{ docker_swarm_advertise_addr }} || true
+
+    - name: Create overlay network
+      shell: docker network create -d overlay --attachable wazuh-net || true
+
+    - name: Ensure Traefik ACME file exists with correct perms
+      file:
+        path: "{{ acme_file }}"
+        state: touch
+        owner: root
+        group: root
+        mode: '0600'
+
+    - name: Create Swarm secret for Wazuh admin password
+      shell: |
+        echo "{{ wazuh_admin_password | default(lookup('env','WAZUH_PASSWORD') | default('ChangeMe!')) }}" |         docker secret create wazuh_admin_password - 2>/dev/null || true
+
+    - name: Deploy Wazuh stack
+      community.docker.docker_stack:
+        name: wazuh
+        state: present
+        compose:
+          - "{{ playbook_dir }}/../../stack/wazuh-stack.yml"
+
+    - name: Wait for dashboard port to be open
+      wait_for:
+        host: 127.0.0.1
+        port: "{{ wazuh_dashboard_https }}"
+        delay: 5
+        timeout: 180
+
+    - name: Show services
+      shell: docker stack services wazuh
+      register: out
+
+    - debug: var=out.stdout

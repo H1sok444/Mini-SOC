@@ -1,0 +1,17 @@
+---
+wazuh_version: "4.8.0"
+wazuh_domain: "soc.local"               # change to FQDN if using ACME DNS-01/HTTP-01
+docker_swarm_advertise_addr: "0.0.0.0"
+
+# Traefik / ACME
+traefik_email: "{{ lookup('env','TRAEFIK_EMAIL') | default('admin@example.com') }}"
+acme_file: "/var/lib/traefik/acme.json"
+
+# Ports
+wazuh_indexer_port: 9200
+wazuh_dashboard_https: 443
+wazuh_manager_api: 55000
+
+# Docker labels base
+traefik_entrypoint_web: "web"
+traefik_entrypoint_websecure: "websecure"

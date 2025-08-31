@@ -1,0 +1,35 @@
+services:
+  traefik:
+    image: traefik:2.11
+    command:
+      - "--providers.docker=true"
+      - "--entrypoints.websecure.address=:8443"
+      - "--serversTransport.insecureSkipVerify=true"
+    ports:
+      - "8443:8443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+  indexer:
+    image: wazuh/wazuh-indexer:4.8.0
+    environment:
+      - discovery.type=single-node
+    networks: [testnet]
+
+  manager:
+    image: wazuh/wazuh-manager:4.8.0
+    networks: [testnet]
+    depends_on: [indexer]
+
+  dashboard:
+    image: wazuh/wazuh-dashboard:4.8.0
+    networks: [testnet]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wtest.entrypoints=websecure"
+      - "traefik.http.routers.wtest.rule=Host(`localhost`)"
+      - "traefik.http.services.wtest.loadbalancer.server.port=5601"
+    depends_on: [indexer]
+
+networks:
+  testnet: {}

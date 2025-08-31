@@ -1,0 +1,95 @@
+version: "3.9"
+
+networks:
+  wazuh-net:
+    external: true
+
+secrets:
+  wazuh_admin_password:
+    external: true
+
+volumes:
+  wazuh-indexer-data: {}
+  wazuh-manager-data: {}
+  wazuh-dashboard-data: {}
+  traefik-config: {}
+  traefik-acme: {}
+
+services:
+
+  traefik:
+    image: traefik:2.11
+    command:
+      - "--providers.docker.swarmMode=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.le.acme.tlschallenge=true"
+      - "--certificatesresolvers.le.acme.email=${TRAEFIK_EMAIL:-admin@example.com}"
+      - "--certificatesresolvers.le.acme.storage=/acme/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "traefik-acme:/acme"
+    networks:
+      - wazuh-net
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.traefik.rule=Host(`traefik.${WAZUH_DOMAIN:-soc.local}`)"
+        - "traefik.http.routers.traefik.entrypoints=websecure"
+        - "traefik.http.routers.traefik.tls.certresolver=le"
+        - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+
+  wazuh-indexer:
+    image: wazuh/wazuh-indexer:4.8.0
+    environment:
+      - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"
+      - "cluster.name=wazuh"
+      - "node.name=wazuh-indexer-1"
+      - "discovery.type=single-node"
+    volumes:
+      - "wazuh-indexer-data:/var/lib/wazuh-indexer"
+    networks: [wazuh-net]
+    deploy:
+      restart_policy: { condition: on-failure }
+
+  wazuh-manager:
+    image: wazuh/wazuh-manager:4.8.0
+    environment:
+      - "INDEXER_URL=https://wazuh-indexer:9200"
+    volumes:
+      - "wazuh-manager-data:/var/ossec/data"
+    networks: [wazuh-net]
+    ports:
+      - "1514:1514/udp"
+      - "1515:1515"
+      - "55000:55000"
+    deploy:
+      restart_policy: { condition: on-failure }
+    depends_on:
+      - wazuh-indexer
+
+  wazuh-dashboard:
+    image: wazuh/wazuh-dashboard:4.8.0
+    environment:
+      - "OPENSEARCH_HOSTS=https://wazuh-indexer:9200"
+      - "WAZUH_PASSWORD_FILE=/run/secrets/wazuh_admin_password"
+    secrets:
+      - "wazuh_admin_password"
+    volumes:
+      - "wazuh-dashboard-data:/usr/share/wazuh-dashboard/data"
+    networks: [wazuh-net]
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.wazuh.rule=Host(`${WAZUH_DOMAIN:-soc.local}`)"
+        - "traefik.http.routers.wazuh.entrypoints=websecure"
+        - "traefik.http.routers.wazuh.tls.certresolver=le"
+        - "traefik.http.services.wazuh.loadbalancer.server.port=5601"
+    depends_on:
+      - wazuh-indexer

@@ -1,0 +1,7 @@
+version: "1"
+securityChecks: [vuln, config, secret]
+severity: [CRITICAL, HIGH]
+vulnerabilityType: [os, library]
+ignoreUnfixed: true
+exitCode: 1
+format: table

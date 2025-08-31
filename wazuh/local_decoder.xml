@@ -1,0 +1,20 @@
+<decoders>
+  <decoder name="local-sshd">
+    <program_name>sshd|ssh</program_name>
+    <prematch>sshd\[\d+\]:</prematch>
+  </decoder>
+
+  <decoder name="local-sshd-failed" parent="local-sshd">
+    <prematch>Failed password</prematch>
+    <regex offset="after_prematch">^ Failed password for (invalid user )?([^ ]+) from ([0-9\.]+)</regex>
+    <order>dstuser,srcip</order>
+    <fts>authentication_failures,sshd</fts>
+  </decoder>
+
+  <decoder name="local-sshd-accepted" parent="local-sshd">
+    <prematch>Accepted password</prematch>
+    <regex offset="after_prematch">^ Accepted password for ([^ ]+) from ([0-9\.]+)</regex>
+    <order>dstuser,srcip</order>
+    <fts>authentication_success,sshd</fts>
+  </decoder>
+</decoders>
