@@ -1,5 +1,5 @@
 ---
-wazuh_version: "4.8.0"
+wazuh_version: "4.12.0"
 wazuh_domain: "soc.local"               # change to FQDN if using ACME DNS-01/HTTP-01
 docker_swarm_advertise_addr: "0.0.0.0"
 

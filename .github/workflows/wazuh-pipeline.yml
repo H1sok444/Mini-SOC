@@ -24,9 +24,9 @@ jobs:
 
       - name: Trivy scan on upstream images
         run: |
-          trivy image --exit-code 1 --severity CRITICAL,HIGH             --no-progress wazuh/wazuh-indexer:4.8.0
-          trivy image --exit-code 1 --severity CRITICAL,HIGH             --no-progress wazuh/wazuh-manager:4.8.0
-          trivy image --exit-code 1 --severity CRITICAL,HIGH             --no-progress wazuh/wazuh-dashboard:4.8.0
+          trivy image --exit-code 1 --severity CRITICAL,HIGH             --no-progress wazuh/wazuh-indexer:4.12.0
+          trivy image --exit-code 1 --severity CRITICAL,HIGH             --no-progress wazuh/wazuh-manager:4.12.0
+          trivy image --exit-code 1 --severity CRITICAL,HIGH             --no-progress wazuh/wazuh-dashboard:4.12.0
 
   tests:
     runs-on: self-hosted

@@ -11,7 +11,7 @@
 
     - name: Ensure Docker Swarm is initialized
       shell: |
-        docker swarm init --advertise-addr {{ docker_swarm_advertise_addr }} || true
+        docker swarm init --advertise-addr 10.10.70.134 || true
 
     - name: Create overlay network
       shell: docker network create -d overlay --attachable wazuh-net || true
@@ -26,7 +26,7 @@
 
     - name: Create Swarm secret for Wazuh admin password
       shell: |
-        echo "{{ wazuh_admin_password | default(lookup('env','WAZUH_PASSWORD') | default('ChangeMe!')) }}" |         docker secret create wazuh_admin_password - 2>/dev/null || true
+        echo "{{ wazuh_admin_password | default(lookup('env','WAZUH_PASSWORD') | default('admin@2025')) }}" |         docker secret create wazuh_admin_password - 2>/dev/null || true
 
     - name: Deploy Wazuh stack
       community.docker.docker_stack:

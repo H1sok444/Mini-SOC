@@ -46,7 +46,7 @@ services:
         - "traefik.http.services.traefik.loadbalancer.server.port=8080"
 
   wazuh-indexer:
-    image: wazuh/wazuh-indexer:4.8.0
+    image: wazuh/wazuh-indexer:4.12.0
     environment:
       - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"
       - "cluster.name=wazuh"
@@ -59,7 +59,7 @@ services:
       restart_policy: { condition: on-failure }
 
   wazuh-manager:
-    image: wazuh/wazuh-manager:4.8.0
+    image: wazuh/wazuh-manager:4.12.0
     environment:
       - "INDEXER_URL=https://wazuh-indexer:9200"
     volumes:
@@ -75,7 +75,7 @@ services:
       - wazuh-indexer
 
   wazuh-dashboard:
-    image: wazuh/wazuh-dashboard:4.8.0
+    image: wazuh/wazuh-dashboard:4.12.0
     environment:
       - "OPENSEARCH_HOSTS=https://wazuh-indexer:9200"
       - "WAZUH_PASSWORD_FILE=/run/secrets/wazuh_admin_password"

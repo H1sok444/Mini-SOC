@@ -1,6 +1,0 @@
-$ANSIBLE_VAULT;1.1;AES256
-# Example (do not use in prod). Create your own with `ansible-vault create group_vars/all/vault.yml`.
-# Expected keys (placeholders):
-# wazuh_admin_user: "admin"
-# wazuh_admin_password: "ChangeMe!"         # also provided via Swarm secret
-# traefik_basic_auth_users: "admin:$$apr1$$xyz$$9k5i/..."    # optional basic auth hash for Traefik dashboard
