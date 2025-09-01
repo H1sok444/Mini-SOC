@@ -1,0 +1,21 @@
+name: Ansible CI
+
+on:
+  push:
+    branches: [my-challenge-changes]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ansible-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - name: Install Ansible
+        run: pip install ansible ansible-lint
+      - name: Run ansible-lint
+        run: ansible-lint ansible/playbooks/deploy.yml
